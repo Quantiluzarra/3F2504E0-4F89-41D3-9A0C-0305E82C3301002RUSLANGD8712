@@ -26,7 +26,6 @@
         * { 
             margin: 0; padding: 0; box-sizing: border-box; 
             user-select: none; -webkit-tap-highlight-color: transparent; 
-            touch-action: none;
         }
         
         body {
@@ -39,7 +38,7 @@
             height: 100vh;
         }
 
-        canvas { position: fixed; inset: 0; z-index: 1; image-rendering: pixelated; width: 100%; height: 100%; }
+        canvas { position: fixed; inset: 0; z-index: 1; image-rendering: pixelated; width: 100%; height: 100%; touch-action: none; }
 
         /* МИНИМАЛИСТИЧНЫЙ HUD В ИГРЕ */
         .hud {
@@ -99,6 +98,7 @@
         /* Скроллбар для мобилок */
         .mc-content { 
             padding: 15px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; 
+            touch-action: pan-y;
         }
         .mc-content::-webkit-scrollbar { width: 8px; }
         .mc-content::-webkit-scrollbar-track { background: #111; }
@@ -133,7 +133,7 @@
         
         .cheat-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); 
             gap: 12px; z-index: 1; position: relative;
         }
         .cheat-card {
@@ -846,26 +846,95 @@
 
         ctx.fillStyle = '#555'; stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
 
-        // NEW: DETAILED VOXEL SHIP
+        // NEW: COMMERCIAL 2D FIGHTER JET (Visual Progression)
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        
         if (player.hyperT > 0) ctx.globalAlpha = 0.5 + Math.sin(frame*0.5)*0.5;
-        
-        // Body
-        drawVoxel(player.x - 8, player.y - 12, 16, '#dddddd', '#ffffff', '#aaaaaa');
-        // Cockpit
-        drawVoxel(player.x - 4, player.y - 6, 8, '#00ffff', '#ccffff', '#0088cc');
-        // Wings
-        drawVoxel(player.x - 20, player.y + 4, 12, '#333333', '#666666', '#111111');
-        drawVoxel(player.x + 8, player.y + 4, 12, '#333333', '#666666', '#111111');
-        // Wingtips (Energy Weapons)
-        drawVoxel(player.x - 24, player.y - 4, 8, '#aa00ff', '#dd88ff', '#5500aa');
-        drawVoxel(player.x + 16, player.y - 4, 8, '#aa00ff', '#dd88ff', '#5500aa');
-        // Engines
-        drawVoxel(player.x - 12, player.y + 16, 8, '#444444', '#888888', '#222222');
-        drawVoxel(player.x + 4, player.y + 16, 8, '#444444', '#888888', '#222222');
-        
-        if(cheats.tiny_hitbox) {
-            ctx.fillStyle = '#ff0000'; ctx.fillRect(player.x-1, player.y-1, 2, 2); // Show pixel hitbox
+
+        let flicker = Math.random() * 5;
+
+        if (player.stats.weapon >= 75) {
+            // TIER 3: DREADNOUGHT (Lvl 75+)
+            // Engines
+            ctx.fillStyle = '#aa00ff'; ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.ellipse(0, 18, 5, 15+flicker, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(-14, 15, 4, 12+flicker, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(14, 15, 4, 12+flicker, 0, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            
+            // Main Hull
+            let grad3 = ctx.createLinearGradient(0, -35, 0, 20);
+            grad3.addColorStop(0, '#333344'); grad3.addColorStop(1, '#11111a');
+            ctx.fillStyle = grad3;
+            ctx.beginPath(); ctx.moveTo(0, -35); ctx.lineTo(20, 20); ctx.lineTo(0, 15); ctx.lineTo(-20, 20); ctx.closePath(); ctx.fill();
+            
+            // Heavy Armor Plates
+            ctx.fillStyle = '#222';
+            ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(35, 5); ctx.lineTo(35, 20); ctx.lineTo(18, 15); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-35, 5); ctx.lineTo(-35, 20); ctx.lineTo(-18, 15); ctx.closePath(); ctx.fill();
+
+            // Neon Accents
+            ctx.strokeStyle = '#aa00ff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(25, 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(-25, 8); ctx.stroke();
+
+            // Cannons
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(-36, -5, 2, 15); ctx.fillRect(34, -5, 2, 15);
+            ctx.fillRect(-22, -15, 3, 20); ctx.fillRect(19, -15, 3, 20);
+
+            // Cockpit
+            ctx.fillStyle = '#00ffff'; ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.ellipse(0, -5, 5, 12, 0, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            
+        } else if (player.stats.weapon >= 25) {
+            // TIER 2: ADVANCED FIGHTER (Lvl 25-74)
+            // Engines
+            ctx.fillStyle = '#0088ff'; ctx.shadowColor = '#0088ff'; ctx.shadowBlur = 15;
+            ctx.beginPath(); ctx.ellipse(-6, 15, 3, 12+flicker, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(6, 15, 3, 12+flicker, 0, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            
+            // Hull
+            let grad2 = ctx.createLinearGradient(0, -25, 0, 15);
+            grad2.addColorStop(0, '#ffffff'); grad2.addColorStop(1, '#444455');
+            ctx.fillStyle = grad2;
+            ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(15, 15); ctx.lineTo(0, 10); ctx.lineTo(-15, 15); ctx.closePath(); ctx.fill();
+
+            // Wings
+            ctx.fillStyle = '#222233';
+            ctx.beginPath(); ctx.moveTo(5, -10); ctx.lineTo(25, 5); ctx.lineTo(25, 15); ctx.lineTo(12, 10); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(-5, -10); ctx.lineTo(-25, 5); ctx.lineTo(-25, 15); ctx.lineTo(-12, 10); ctx.closePath(); ctx.fill();
+            
+            // Cannons
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(-26, -2, 2, 12); ctx.fillRect(24, -2, 2, 12);
+
+            // Cockpit
+            ctx.fillStyle = '#00ffff';
+            ctx.beginPath(); ctx.ellipse(0, -2, 4, 8, 0, 0, Math.PI*2); ctx.fill();
+            
+        } else {
+            // TIER 1: BASE FIGHTER (Lvl 1-24)
+            // Engine
+            ctx.fillStyle = '#00ffff'; ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.ellipse(0, 12, 3, 10+flicker, 0, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            
+            // Hull
+            let grad = ctx.createLinearGradient(0, -20, 0, 15);
+            grad.addColorStop(0, '#e0e0e0'); grad.addColorStop(1, '#555566');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(12, 12); ctx.lineTo(0, 8); ctx.lineTo(-12, 12); ctx.closePath(); ctx.fill();
+            
+            // Cockpit
+            ctx.fillStyle = '#00ffff';
+            ctx.beginPath(); ctx.ellipse(0, -2, 3, 7, 0, 0, Math.PI*2); ctx.fill();
         }
+
+        if(cheats.tiny_hitbox) {
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(-1, -1, 2, 2); // Show pixel hitbox
+        }
+        
+        ctx.restore();
         ctx.globalAlpha = 1;
 
         // Drones
