@@ -2,19 +2,24 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Cosmic Strike: Mobile Rage</title>
+    <title>Cosmic Strike: Voxel Rage</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0088ff;
+            --mc-bg: #1d1d1d;
+            --mc-panel: #c6c6c6;
+            --mc-dark: #373737;
+            --mc-border-light: #ffffff;
+            --mc-border-dark: #555555;
+            
+            --primary: #00aaff;
             --accent: #aa00ff;
-            --danger: #ff0033;
-            --success: #00cc00;
+            --danger: #ff3333;
+            --success: #33cc33;
             --warning: #ffaa00;
-            --bg-color: #050505;
-            --ui-bg: rgba(17, 17, 17, 0.9);
-            --border-col: #ffffff;
+            --emerald: #55ff55;
+            
             --font-main: 'Press Start 2P', monospace;
         }
 
@@ -25,7 +30,7 @@
         }
         
         body {
-            background: var(--bg-color);
+            background: #000;
             font-family: var(--font-main);
             overflow: hidden;
             color: #fff;
@@ -36,480 +41,906 @@
 
         canvas { position: fixed; inset: 0; z-index: 1; image-rendering: pixelated; width: 100%; height: 100%; }
 
+        /* МИНИМАЛИСТИЧНЫЙ HUD В ИГРЕ */
         .hud {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            z-index: 10;
-            pointer-events: none;
-            padding: env(safe-area-inset-top, 10px) 10px 10px 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+            pointer-events: none; padding: env(safe-area-inset-top, 15px) 15px 15px 15px;
+            display: flex; flex-direction: column; gap: 8px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
         }
 
-        .hud-top { display: flex; justify-content: space-between; gap: 5px; }
-        .stat-box { 
-            background: var(--ui-bg); 
-            padding: 8px; 
-            border: 2px solid var(--border-col); 
-            flex: 1;
-            text-align: center;
+        .hud-top { display: flex; justify-content: space-between; align-items: flex-start; text-shadow: 2px 2px 0 #000; }
+        .hud-stat { font-size: 10px; margin-bottom: 5px; color: #fff;}
+        .hud-stat span { color: var(--emerald); }
+        .wave-disp { font-size: 16px; color: var(--warning); text-align: right; }
+
+        .bars-container { display: flex; gap: 10px; width: 100%; max-width: 300px; }
+        .mc-bar {
+            height: 16px; flex: 1; border: 2px solid var(--mc-dark); background: #000;
+            position: relative; box-shadow: inset -2px -2px 0 rgba(0,0,0,0.5), inset 2px 2px 0 rgba(255,255,255,0.2);
         }
-
-        .stat-title { font-size: 7px; color: #aaa; margin-bottom: 4px; }
-        .stat-value { font-size: 10px; color: #fff; }
-        .best-score { font-size: 6px; color: var(--success); margin-top: 4px; }
-
-        .bars { width: 100%; pointer-events: auto; }
-        .bar-container { 
-            height: 12px; border: 2px solid var(--border-col); 
-            margin-bottom: 4px; background: #222; 
-            position: relative; overflow: hidden;
-        }
-        .bar-fill { height: 100%; width: 100%; transition: width 0.2s ease-out; }
-        .bar-label { position: absolute; font-size: 7px; top: 1px; left: 6px; color: #fff; z-index: 2; text-shadow: 1px 1px 0 #000; }
-
+        .bar-fill { height: 100%; width: 100%; transition: width 0.1s linear; }
+        .bar-hp { background: var(--danger); box-shadow: inset 0 4px 0 rgba(255,255,255,0.3); }
+        .bar-sh { background: var(--primary); box-shadow: inset 0 4px 0 rgba(255,255,255,0.3); }
+        
+        /* БОКОВЫЕ КНОПКИ (СИСТЕМНЫЕ) */
         .sys-btns { 
-            position: absolute; 
-            top: 50%; right: 10px; transform: translateY(-50%);
+            position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
             pointer-events: auto; display: flex; flex-direction: column; gap: 15px; z-index: 100; 
         }
-        
-        .side-btn {
-            background: var(--ui-bg); border: 2px solid var(--border-col);
-            color: #fff; padding: 12px 8px; font-size: 9px; font-family: var(--font-main);
-            cursor: pointer; text-align: center; box-shadow: 3px 3px 0 #000;
-            writing-mode: vertical-rl; text-orientation: mixed;
+        .mc-btn {
+            background: var(--mc-panel); border: 2px solid #000; color: #000;
+            padding: 10px; font-family: var(--font-main); font-size: 10px; cursor: pointer;
+            box-shadow: inset 2px 2px 0 var(--mc-border-light), inset -2px -2px 0 var(--mc-border-dark), 4px 4px 0 #000;
+            text-align: center;
         }
-        .side-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #000; }
+        .mc-btn:active {
+            box-shadow: inset 2px 2px 0 var(--mc-border-dark), inset -2px -2px 0 var(--mc-border-light), 0px 0px 0 #000;
+            transform: translate(4px, 4px);
+        }
+        .btn-side { writing-mode: vertical-rl; text-orientation: mixed; padding: 15px 10px; }
 
+        /* МОДАЛЬНЫЕ ОКНА */
         .ui-modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-            z-index: 5000; display: none; flex-direction: column; padding: 20px;
-            border: 4px solid; margin: env(safe-area-inset-top, 10px) 10px;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center;
         }
+        .mc-window {
+            background: var(--mc-panel); border: 4px solid #000; width: 95%; max-width: 600px;
+            max-height: 85vh; display: flex; flex-direction: column;
+            box-shadow: inset 4px 4px 0 var(--mc-border-light), inset -4px -4px 0 var(--mc-border-dark), 10px 10px 0 #000;
+        }
+        .mc-header {
+            background: #0000aa; color: #fff; padding: 12px; display: flex; justify-content: space-between;
+            font-size: 10px; border-bottom: 4px solid #000; align-items: center;
+        }
+        .mc-close { cursor: pointer; color: #ccc; font-size: 14px; padding: 0 5px; } .mc-close:hover { color: #fff; }
         
-        .modal-header { display: flex; justify-content: space-between; border-bottom: 2px solid; padding-bottom: 15px; margin-bottom: 15px; font-size: 10px; }
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow-y: auto; flex: 1; }
+        /* Скроллбар для мобилок */
+        .mc-content { 
+            padding: 15px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; 
+        }
+        .mc-content::-webkit-scrollbar { width: 8px; }
+        .mc-content::-webkit-scrollbar-track { background: #111; }
+        .mc-content::-webkit-scrollbar-thumb { background: var(--mc-dark); border: 1px solid #555; }
+
+        /* SHOP ITEMS */
+        .shop-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .shop-item {
+            background: var(--mc-dark); border: 2px solid #000; padding: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: inset 2px 2px 0 #555, inset -2px -2px 0 #111;
+        }
+        .shop-info h3 { font-size: 9px; color: var(--mc-border-light); margin-bottom: 6px; }
+        .shop-info p { font-size: 7px; color: #aaa; line-height: 1.4; }
+        .lvl-bar { width: 100%; height: 4px; background: #000; margin-top: 5px; }
+        .lvl-fill { height: 100%; background: var(--warning); }
+        .buy-btn { font-size: 8px; padding: 8px; background: var(--emerald); color: #000; border: 2px solid #000; box-shadow: inset 2px 2px 0 #afffaf, inset -2px -2px 0 #005500; }
+        .buy-btn:disabled { background: #555; box-shadow: none; color: #888; transform: none; }
+
+        /* CHEAT TERMINAL (COMMERCIAL/MOBILE OPTIMIZED) */
+        .hacker-bg { 
+            background: #020a02; color: #0f0; border: 4px solid #00ff00; 
+            box-shadow: inset 0 0 20px rgba(0,255,0,0.1), 0 0 20px rgba(0,255,0,0.2);
+            position: relative; overflow: hidden;
+        }
+        .hacker-bg::before {
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%; z-index: 0; opacity: 0.5;
+        }
+        .hacker-header { background: #002200; color: #0f0; border-bottom: 4px solid #0f0; z-index: 1; position: relative;}
         
-        .card { background: #111; border: 2px solid #444; padding: 10px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
-        .card.active { border-color: var(--success); background: #0a220a; }
-        .card h3 { font-size: 8px; margin-bottom: 5px; }
-        .card p { font-size: 6px; color: #888; }
+        .cheat-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
+            gap: 12px; z-index: 1; position: relative;
+        }
+        .cheat-card {
+            border: 2px solid #0f0; padding: 12px 8px; text-align: center; background: rgba(0,20,0,0.8);
+            transition: all 0.2s ease; position: relative; overflow: hidden; cursor: pointer;
+            display: flex; flex-direction: column; justify-content: center; min-height: 85px;
+        }
+        .cheat-card:active { transform: scale(0.95); }
+        .cheat-card.locked { border-color: #222; color: #444; background: rgba(0,0,0,0.9); cursor: not-allowed; }
+        .cheat-card.locked::after {
+            content: 'LOCKED'; position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+            display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--danger);
+            font-weight: bold; text-shadow: 2px 2px 0 #000;
+        }
+        .cheat-card.active { 
+            background: #00ff00; color: #000; box-shadow: 0 0 15px #0f0, inset 0 0 10px #fff; 
+        }
+        .cheat-card.active .unlock-req { color: #000; opacity: 0.7; }
+        
+        .cheat-card h3 { font-size: 8px; margin-bottom: 6px; line-height: 1.2; }
+        .cheat-card p { font-size: 6px; opacity: 0.9; line-height: 1.4; }
+        .unlock-req { font-size: 6px; color: var(--danger); margin-top: 8px; border-top: 1px dotted rgba(255,0,0,0.3); padding-top: 4px;}
 
-        .buy-btn { background: var(--warning); color: #000; border: none; font-family: var(--font-main); font-size: 8px; padding: 8px; margin-top: 5px; }
-        .buy-btn:disabled { background: #555; color: #888; }
-
+        /* SKILLS */
         .skills-container {
-            position: fixed; bottom: env(safe-area-inset-bottom, 30px); left: 0; right: 0;
-            display: flex; justify-content: center; gap: 40px;
-            z-index: 500; pointer-events: none;
+            position: fixed; bottom: env(safe-area-inset-bottom, 20px); left: 0; right: 0;
+            display: flex; justify-content: center; gap: 30px; z-index: 50; pointer-events: none;
         }
         .skill-btn {
-            width: 70px; height: 70px;
-            background: var(--ui-bg); border: 3px solid var(--border-col);
-            color: #fff; font-family: var(--font-main); font-size: 8px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            pointer-events: auto; border-radius: 50%; position: relative;
-            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+            width: 60px; height: 60px; pointer-events: auto;
+            border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .skill-btn.disabled { opacity: 0.5; filter: grayscale(1); }
-        .skill-cd { position: absolute; bottom: -20px; font-size: 8px; color: #fff; }
-        #btn-emp { border-color: var(--primary); color: var(--primary); }
-        #btn-hyper { border-color: var(--success); color: var(--success); }
+        .skill-btn.disabled { opacity: 0.4; pointer-events: none; }
+        #btn-emp { color: var(--primary); }
+        #btn-hyper { color: var(--warning); }
+        .skill-cd { font-size: 8px; margin-top: 4px; color: #fff; text-shadow: 1px 1px 0 #000; }
 
+        /* START SCREEN */
         #start-screen {
-            position: fixed; inset: 0; background: #000; z-index: 9999;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 20px;
+            backdrop-filter: blur(10px);
         }
-        .start-btn { padding: 20px; width: 100%; max-width: 300px; background: var(--primary); color: #fff; border: 4px solid #fff; font-family: var(--font-main); font-size: 12px; margin-top: 20px; }
+        .title-logo { text-align: center; margin-bottom: 40px; text-shadow: 4px 4px 0 #000; }
+        .title-logo h1 { font-size: 24px; color: #fff; margin-bottom: 10px; line-height: 1.5; }
+        .title-logo span { color: var(--emerald); font-size: 30px; display: block; }
+        
+        .lang-switch { position: absolute; top: env(safe-area-inset-top, 20px); display: flex; gap: 10px; }
+        .lang-btn { background: none; border: 2px solid #555; color: #555; padding: 10px; font-family: var(--font-main); font-size: 10px; cursor: pointer;}
+        .lang-btn.active { border-color: #fff; color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
 
+        /* TG BANNER */
+        .tg-banner {
+            position: absolute; bottom: env(safe-area-inset-bottom, 30px); background: linear-gradient(90deg, #0088cc, #005580);
+            border: 2px solid #fff; padding: 15px; border-radius: 10px; text-align: center;
+            box-shadow: 0 0 20px rgba(0, 136, 204, 0.6); animation: floatMsg 2s ease-in-out infinite;
+            cursor: pointer; max-width: 90%;
+        }
+        .tg-banner p { font-size: 9px; color: #fff; line-height: 1.4; }
+        .tg-banner span { color: #ffeb3b; font-size: 10px; }
+        @keyframes floatMsg { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* BOSS WARNING */
         #boss-warning {
             position: fixed; top: 30%; left: 0; right: 0; text-align: center;
-            color: var(--danger); font-size: 20px; z-index: 1000; display: none;
-            animation: blink 0.5s infinite; text-shadow: 0 0 10px #ff0000;
+            color: var(--danger); font-size: 24px; z-index: 1000; display: none;
+            animation: blink 0.2s infinite; text-shadow: 4px 4px 0 #000, 0 0 20px #ff0000;
         }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0; transform: scale(1.1); } }
+
     </style>
 </head>
 <body>
 
-<div id="boss-warning">BOSS APPROACHING</div>
-
 <div id="start-screen">
-    <h1 style="text-align:center; font-size: 20px;">COSMIC STRIKE<br><span style="color:var(--accent)">RAGE MOBILE</span></h1>
-    <div style="margin-top: 30px; text-align: center;">
-        <p style="font-size: 8px; color: #aaa;">BEST CLEAN SCORE:</p>
-        <p id="best-score-display" style="font-size: 12px; color: var(--success); margin-top:5px;">0</p>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
     </div>
-    <button class="start-btn" onclick="startGame()">START MISSION</button>
+
+    <div class="title-logo">
+        <h1 id="ui-title">COSMIC STRIKE<br><span>VOXEL RAGE</span></h1>
+        <div style="font-size: 10px; color: #aaa; margin-top: 20px;">
+            <span id="ui-best">BEST SCORE:</span> <span id="best-score-display" style="color: var(--warning);">0</span>
+        </div>
+    </div>
+    
+    <button class="mc-btn" style="font-size: 16px; padding: 20px 40px;" onclick="startGame()" id="ui-start">НАЧАТЬ</button>
+
+    <div class="tg-banner" onclick="window.open('https://t.me/rusgamingdev', '_blank')">
+        <p id="ui-tg">ПОДДЕРЖИ РАЗРАБОТЧИКА!<br><br><span>👉 t.me/rusgamingdev 👈</span></p>
+    </div>
 </div>
+
+<div id="boss-warning">BOSS ALERT!</div>
 
 <div class="hud">
     <div class="hud-top">
-        <div class="stat-box">
-            <div class="stat-title">SCORE</div>
-            <div id="score-val" class="stat-value">0</div>
-            <div id="cheat-indicator" style="font-size: 6px; color: var(--danger); display: none; margin-top: 2px;">[CHEAT SESSION]</div>
+        <div>
+            <div class="hud-stat" id="ui-score-text">SCORE: <span id="score-val" style="color:#fff;">0</span></div>
+            <div class="hud-stat" id="ui-cred-text">EMERALDS: <span id="cred-val">0</span></div>
+            <div id="cheat-indicator" style="font-size: 8px; color: var(--danger); display: none; margin-top: 4px; animation: blink 1s infinite;">[CHEATS ACTIVE]</div>
         </div>
-        <div class="stat-box">
-            <div class="stat-title">WAVE</div>
-            <div id="wave-val" class="stat-value">01</div>
-            <div class="best-score">CR: <span id="cred-val">0</span></div>
-        </div>
+        <div class="wave-disp" id="ui-wave-text">WAVE <span id="wave-val" style="color:#fff;">1</span></div>
     </div>
-    <div class="bars">
-        <div class="bar-container"><div class="bar-label">HULL</div><div id="hp-fill" class="bar-fill" style="background: var(--danger);"></div></div>
-        <div class="bar-container"><div class="bar-label">SHIELD</div><div id="sh-fill" class="bar-fill" style="background: var(--primary);"></div></div>
+    <div class="bars-container">
+        <div class="mc-bar"><div id="hp-fill" class="bar-fill bar-hp"></div></div>
+        <div class="mc-bar"><div id="sh-fill" class="bar-fill bar-sh"></div></div>
     </div>
 </div>
 
 <div class="sys-btns">
-    <div class="side-btn" onclick="toggleModal('cheat-ui')" style="color: var(--accent); border-color: var(--accent);">RAGE_MENU</div>
-    <div class="side-btn" onclick="toggleModal('shop-ui')" style="color: var(--warning); border-color: var(--warning);">SHOP</div>
+    <div class="mc-btn btn-side" onclick="toggleModal('cheat-ui')" style="color: var(--danger);">RAGE_OS</div>
+    <div class="mc-btn btn-side" onclick="toggleModal('shop-ui')" style="color: #005500; background: var(--emerald);">SHOP</div>
 </div>
 
-<!-- Модалки -->
-<div id="cheat-ui" class="ui-modal" style="border-color: var(--accent);">
-    <div class="modal-header" style="color: var(--accent);"><span>RAGE TERMINAL v5.0</span><span onclick="toggleModal('cheat-ui')">[X]</span></div>
-    <div class="grid-container">
-        <div class="card" id="cheat-god" onclick="toggleCheat('god')"><h3>GOD_MODE</h3><p>INVINCIBILITY</p></div>
-        <div class="card" id="cheat-rapid" onclick="toggleCheat('rapid')"><h3>RAPID_FIRE</h3><p>MAX SPEED</p></div>
-        <div class="card" id="cheat-insta" onclick="toggleCheat('insta')"><h3>INSTA_KILL</h3><p>1-HIT KILL</p></div>
-        <div class="card" id="cheat-money" onclick="toggleCheat('money')"><h3>INFINITE_CR</h3><p>MONEY RAIN</p></div>
+<!-- SHOP MODAL -->
+<div id="shop-ui" class="ui-modal">
+    <div class="mc-window">
+        <div class="mc-header">
+            <span id="ui-shop-title">MERCHANT</span>
+            <span class="mc-close" onclick="toggleModal('shop-ui')">X</span>
+        </div>
+        <div class="mc-content" style="background: #222;">
+            <div style="text-align:center; color:var(--emerald); margin-bottom:15px; font-size:12px; text-shadow: 2px 2px 0 #000;">
+                <span id="ui-shop-bal">BALANCE:</span> <span id="shop-cred-val">0</span>💎
+            </div>
+            <div class="shop-grid" id="shop-grid"></div>
+        </div>
     </div>
-    <button class="side-btn" style="writing-mode:horizontal-tb; width:100%; margin-top:10px;" onclick="toggleModal('cheat-ui')">RESUME</button>
 </div>
 
-<div id="shop-ui" class="ui-modal" style="border-color: var(--warning);">
-    <div class="modal-header" style="color: var(--warning);"><span>ARMORY</span><span onclick="toggleModal('shop-ui')">[X]</span></div>
-    <div style="text-align:center; color:var(--warning); margin-bottom:10px; font-size:10px;">CREDITS: <span id="shop-cred-val">0</span></div>
-    <div class="grid-container" id="shop-grid"></div>
-    <button class="side-btn" style="writing-mode:horizontal-tb; width:100%; margin-top:10px;" onclick="toggleModal('shop-ui')">RESUME</button>
+<!-- CHEAT MODAL -->
+<div id="cheat-ui" class="ui-modal">
+    <div class="mc-window hacker-bg">
+        <div class="mc-header hacker-header">
+            <span>RAGE OS v10.0</span>
+            <span class="mc-close" onclick="toggleModal('cheat-ui')">X</span>
+        </div>
+        <div class="mc-content">
+            <div style="text-align:center; color:#0f0; margin-bottom:15px; font-size:7px; line-height: 1.5;" id="ui-cheat-desc">
+                SYSTEM OVERRIDE.<br>UNLOCK FEATURES VIA PROGRESSION.
+            </div>
+            <!-- Динамическая сетка читов -->
+            <div class="cheat-grid" id="cheat-grid-container"></div>
+        </div>
+    </div>
 </div>
 
 <div class="skills-container">
-    <div class="skill-btn" id="btn-emp" onclick="useAbility('emp')">
-        <span>EMP</span>
-        <span class="skill-cd" id="cd-emp">READY</span>
+    <div class="mc-btn skill-btn" id="btn-emp" onclick="useAbility('emp')">
+        <span>EMP</span><span class="skill-cd" id="cd-emp">RDY</span>
     </div>
-    <div class="skill-btn" id="btn-hyper" onclick="useAbility('hyper')">
-        <span>HYPER</span>
-        <span class="skill-cd" id="cd-hyper">READY</span>
+    <div class="mc-btn skill-btn" id="btn-hyper" onclick="useAbility('hyper')">
+        <span>WARP</span><span class="skill-cd" id="cd-hyper">RDY</span>
     </div>
 </div>
 
 <canvas id="game"></canvas>
 
 <script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d', { alpha: false });
-    let w, h, gameActive = false, frame = 0;
-    
-    // Состояние игрока
-    const player = {
-        x: 0, y: 0, tx: 0, ty: 0,
-        hp: 100, mHp: 100, sh: 100, mSh: 100,
-        weapon: 1, fr: 1, 
-        empCd: 0, hyperCd: 0, hyperT: 0,
-        credits: 0, score: 0, wave: 1,
-        usedCheats: false
+    // --- DICTIONARY & LOCALIZATION ---
+    const dict = {
+        ru: {
+            title: "COSMIC STRIKE<br><span>VOXEL RAGE</span>", best: "РЕКОРД:", start: "НАЧАТЬ МИССИЮ",
+            tg: "ПОДДЕРЖИ РАЗРАБОТЧИКА!<br><br><span>👉 t.me/rusgamingdev 👈</span>",
+            score: "ОЧКИ:", cred: "ИЗУМРУДЫ:", wave: "ВОЛНА",
+            shopTitle: "ТОРГОВЕЦ", shopBal: "БАЛАНС:",
+            cheatDesc: "СИСТЕМНЫЙ ВЗЛОМ.<br>ПРОХОДИТЕ ВОЛНЫ ДЛЯ РАЗБЛОКИРОВКИ.", req: "ТРЕБ: ВОЛНА",
+            upg: ["ОРУЖИЕ", "СКОРОСТРЕЛЬНОСТЬ", "БРОНЯ", "ЩИТЫ", "МАГНИТ", "ДРОН"],
+            upgDesc: ["Урон лазера", "Частота стрельбы", "Макс здоровье", "Макс щит", "Радиус сбора лута", "Авто-помощник"],
+            lvl: "УР",
+            cheats: {
+                money: { name: "INF_LOOT", desc: "Бесконечные Изумруды" },
+                rapid: { name: "RAPID_FIRE", desc: "Режим пулемета" },
+                insta: { name: "INSTA_KILL", desc: "Убийство с 1 попадания" },
+                god: { name: "GOD_MODE", desc: "Неуязвимость" },
+                magnet_max: { name: "BLACK HOLE", desc: "Мгновенный сбор всего лута" },
+                time_slow: { name: "TIME_SLOW", desc: "Замедление врагов и пуль" },
+                noclip: { name: "NOCLIP", desc: "Отключение урона от столкновений" },
+                drone_army: { name: "DRONE_ARMY", desc: "Призыв 4х доп. дронов" },
+                emp_spam: { name: "EMP_SPAM", desc: "Отключение кулдауна EMP" },
+                warp_spam: { name: "WARP_SPAM", desc: "Отключение кулдауна WARP" },
+                auto_nuke: { name: "AUTO_NUKE", desc: "Уничтожение врагов раз в 5 сек" },
+                hyper_speed: { name: "HYPER_SPEED", desc: "Мгновенное перемещение" },
+                tiny_hitbox: { name: "TINY_HITBOX", desc: "Микроскопический хитбокс" },
+                giant_blast: { name: "GIANT_BLAST", desc: "Огромные пули-убийцы" }
+            }
+        },
+        en: {
+            title: "COSMIC STRIKE<br><span>VOXEL RAGE</span>", best: "BEST SCORE:", start: "START MISSION",
+            tg: "SUPPORT THE DEV!<br><br><span>👉 t.me/rusgamingdev 👈</span>",
+            score: "SCORE:", cred: "EMERALDS:", wave: "WAVE",
+            shopTitle: "MERCHANT", shopBal: "BALANCE:",
+            cheatDesc: "SYSTEM OVERRIDE.<br>UNLOCK FEATURES VIA PROGRESSION.", req: "REQ: WAVE",
+            upg: ["WEAPON", "FIRE RATE", "HULL", "SHIELDS", "MAGNET", "DRONE"],
+            upgDesc: ["Laser Damage", "Shooting frequency", "Max Health", "Max Shield", "Loot pickup radius", "Auto-shooting helper"],
+            lvl: "LVL",
+            cheats: {
+                money: { name: "INF_LOOT", desc: "Max Emeralds generator" },
+                rapid: { name: "RAPID_FIRE", desc: "Machine gun fire rate" },
+                insta: { name: "INSTA_KILL", desc: "1 Hit = Death" },
+                god: { name: "GOD_MODE", desc: "Invincibility" },
+                magnet_max: { name: "BLACK HOLE", desc: "Instant map-wide loot pickup" },
+                time_slow: { name: "TIME_SLOW", desc: "Enemies and bullets move slow" },
+                noclip: { name: "NOCLIP", desc: "Pass through enemies safely" },
+                drone_army: { name: "DRONE_ARMY", desc: "Summons 4 extra drones" },
+                emp_spam: { name: "EMP_SPAM", desc: "Zero EMP cooldown" },
+                warp_spam: { name: "WARP_SPAM", desc: "Zero WARP cooldown" },
+                auto_nuke: { name: "AUTO_NUKE", desc: "Wipes screen every 5s" },
+                hyper_speed: { name: "HYPER_SPEED", desc: "Instant ship movement" },
+                tiny_hitbox: { name: "TINY_HITBOX", desc: "1-pixel sized hitbox" },
+                giant_blast: { name: "GIANT_BLAST", desc: "Massive piercing bullets" }
+            }
+        }
     };
 
-    let cheats = { god: false, rapid: false, insta: false, money: false };
-    let enemies = [], bullets = [], enemyBullets = [], particles = [], stars = [];
-    let boss = null;
-
-    const shipPixels = [
-        [0,0,0,1,0,0,0],
-        [0,0,1,2,1,0,0],
-        [0,1,1,2,1,1,0],
-        [1,1,3,1,3,1,1],
-        [1,0,0,4,0,0,1]
+    // --- CHEAT CONFIG (14 functions) ---
+    const cheatConfig = [
+        { id: 'money', req: 5 }, { id: 'rapid', req: 10 }, { id: 'insta', req: 15 },
+        { id: 'god', req: 20 }, { id: 'magnet_max', req: 25 }, { id: 'time_slow', req: 30 },
+        { id: 'noclip', req: 35 }, { id: 'drone_army', req: 40 }, { id: 'emp_spam', req: 45 },
+        { id: 'warp_spam', req: 50 }, { id: 'auto_nuke', req: 55 }, { id: 'hyper_speed', req: 60 },
+        { id: 'tiny_hitbox', req: 65 }, { id: 'giant_blast', req: 70 }
     ];
-    const pSize = 5;
+
+    let cheats = {}; // Dynamically filled
+    cheatConfig.forEach(c => cheats[c.id] = false);
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        const d = dict[lang];
+        document.getElementById('ui-title').innerHTML = d.title;
+        document.getElementById('ui-best').innerText = d.best;
+        document.getElementById('ui-start').innerText = d.start;
+        document.getElementById('ui-tg').innerHTML = d.tg;
+        document.getElementById('ui-score-text').innerHTML = `${d.score} <span id="score-val" style="color:#fff;">0</span>`;
+        document.getElementById('ui-cred-text').innerHTML = `${d.cred} <span id="cred-val">0</span>`;
+        document.getElementById('ui-shop-title').innerText = d.shopTitle;
+        document.getElementById('ui-shop-bal').innerText = d.shopBal;
+        document.getElementById('ui-cheat-desc').innerHTML = d.cheatDesc;
+        
+        updateCheatUI();
+    }
+
+    // --- GAME ENGINE & STATE ---
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    let w, h, gameActive = false, frame = 0, screenShake = 0;
+    
+    // Player Stats
+    const player = {
+        x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0,
+        hp: 100, mHp: 100, sh: 100, mSh: 100,
+        stats: { weapon: 1, fr: 1, hpLvl: 1, shLvl: 1, magnet: 1, drone: 0 },
+        empCd: 0, hyperCd: 0, hyperT: 0,
+        credits: 0, score: 0, wave: 1, maxWave: 1,
+        usedCheats: false, size: 24
+    };
+
+    let enemies = [], bullets = [], enemyBullets = [], particles = [], stars = [], drops = [];
+    let boss = null;
 
     function init() {
         w = window.innerWidth; h = window.innerHeight;
         canvas.width = w * devicePixelRatio; canvas.height = h * devicePixelRatio;
         ctx.scale(devicePixelRatio, devicePixelRatio);
         player.x = player.tx = w/2; player.y = player.ty = h - 150;
-        stars = Array.from({length: 50}, () => ({ x: Math.random()*w, y: Math.random()*h, v: Math.random()*2+1 }));
+        stars = Array.from({length: 60}, () => ({ x: Math.random()*w, y: Math.random()*h, s: Math.random()*2+1, v: Math.random()*3+1 }));
+        
+        // Load save
+        player.maxWave = parseInt(localStorage.getItem('cs_max_wave') || 1);
+        player.credits = parseInt(localStorage.getItem('cs_credits') || 0);
         document.getElementById('best-score-display').innerText = localStorage.getItem('cs_best_score') || 0;
+        
+        buildCheatDOM();
+        updateCheatUI();
     }
 
+    // --- MATH & UTILS ---
+    function calcCost(base, lvl) { return Math.floor(base * Math.pow(lvl, 1.4)); }
+    function addShake(val) { screenShake = Math.min(screenShake + val, 30); }
+    
+    // Voxel Drawer (Draws 3D-ish box)
+    function drawVoxel(x, y, size, mainCol, lightCol, darkCol) {
+        ctx.fillStyle = mainCol; ctx.fillRect(x, y, size, size);
+        ctx.fillStyle = lightCol; ctx.fillRect(x, y, size, 2); ctx.fillRect(x, y, 2, size);
+        ctx.fillStyle = darkCol; ctx.fillRect(x, y+size-2, size, 2); ctx.fillRect(x+size-2, y, 2, size);
+    }
+
+    // --- UI LOGIC ---
     function toggleModal(id) {
         const el = document.getElementById(id);
         el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
         if (id === 'shop-ui') renderShop();
-    }
-
-    function toggleCheat(id) {
-        cheats[id] = !cheats[id];
-        player.usedCheats = true;
-        document.getElementById('cheat-indicator').style.display = 'block';
-        document.getElementById('cheat-'+id).classList.toggle('active');
+        if (id === 'cheat-ui') updateCheatUI();
     }
 
     function renderShop() {
+        const d = dict[currentLang];
+        const s = player.stats;
         const shopData = [
-            { id: 'weapon', name: 'WEAPON LVL', val: player.weapon, cost: 100 * player.weapon },
-            { id: 'fr', name: 'FIRE RATE', val: player.fr, cost: 80 * player.fr },
-            { id: 'hp', name: 'MAX HULL', val: player.mHp, cost: 50 + player.mHp },
-            { id: 'sh', name: 'MAX SHIELD', val: player.mSh, cost: 50 + player.mSh }
+            { id: 'weapon', name: d.upg[0], desc: d.upgDesc[0], val: s.weapon, base: 100 },
+            { id: 'fr', name: d.upg[1], desc: d.upgDesc[1], val: s.fr, base: 150 },
+            { id: 'hpLvl', name: d.upg[2], desc: d.upgDesc[2], val: s.hpLvl, base: 50 },
+            { id: 'shLvl', name: d.upg[3], desc: d.upgDesc[3], val: s.shLvl, base: 75 },
+            { id: 'magnet', name: d.upg[4], desc: d.upgDesc[4], val: s.magnet, base: 200 },
+            { id: 'drone', name: d.upg[5], desc: d.upgDesc[5], val: s.drone, base: 500 }
         ];
+
         document.getElementById('shop-cred-val').innerText = player.credits;
-        document.getElementById('shop-grid').innerHTML = shopData.map(item => `
-            <div class="card">
-                <h3>${item.name}</h3>
-                <p>CUR: ${item.val}</p>
-                <button class="buy-btn" ${player.credits < item.cost ? 'disabled' : ''} onclick="buy('${item.id}', ${item.cost})">${item.cost} CR</button>
+        document.getElementById('shop-grid').innerHTML = shopData.map(item => {
+            const cost = calcCost(item.base, item.val === 0 ? 1 : item.val);
+            const isMax = item.val >= 100;
+            return `
+            <div class="shop-item">
+                <div class="shop-info" style="flex:1; padding-right:10px;">
+                    <h3>${item.name} <span style="color:#fff;">[${item.val}/100]</span></h3>
+                    <p>${item.desc}</p>
+                    <div class="lvl-bar"><div class="lvl-fill" style="width: ${item.val}%"></div></div>
+                </div>
+                <button class="mc-btn buy-btn" ${player.credits < cost || isMax ? 'disabled' : ''} 
+                        onclick="buy('${item.id}', ${cost})">
+                    ${isMax ? 'MAX' : cost + '💎'}
+                </button>
+            </div>
+        `}).join('');
+    }
+
+    function buy(id, cost) {
+        if (player.credits < cost || player.stats[id] >= 100) return;
+        player.credits -= cost;
+        player.stats[id]++;
+        
+        if (id === 'hpLvl') { player.mHp = 100 + (player.stats.hpLvl * 20); player.hp = player.mHp; }
+        if (id === 'shLvl') { player.mSh = 100 + (player.stats.shLvl * 20); player.sh = player.mSh; }
+        
+        localStorage.setItem('cs_credits', player.credits);
+        renderShop();
+    }
+
+    // --- CHEAT SYSTEM ---
+    function buildCheatDOM() {
+        const container = document.getElementById('cheat-grid-container');
+        container.innerHTML = cheatConfig.map(c => `
+            <div class="cheat-card" id="cheat-${c.id}" onclick="toggleCheat('${c.id}')">
+                <h3 id="ui-ch-${c.id}-name"></h3>
+                <p id="ui-ch-${c.id}-desc"></p>
+                <div class="unlock-req" id="req-${c.id}"></div>
             </div>
         `).join('');
     }
 
-    function buy(id, cost) {
-        if (player.credits < cost) return;
-        player.credits -= cost;
-        if (id === 'weapon') player.weapon++;
-        if (id === 'fr') player.fr++;
-        if (id === 'hp') { player.mHp += 50; player.hp = player.mHp; }
-        if (id === 'sh') { player.mSh += 50; player.sh = player.mSh; }
-        renderShop();
+    function updateCheatUI() {
+        const d = dict[currentLang];
+        cheatConfig.forEach(c => {
+            const el = document.getElementById('cheat-' + c.id);
+            document.getElementById(`ui-ch-${c.id}-name`).innerText = d.cheats[c.id].name;
+            document.getElementById(`ui-ch-${c.id}-desc`).innerText = d.cheats[c.id].desc;
+            document.getElementById('req-' + c.id).innerText = `${d.req} ${c.req}`;
+            
+            if (player.maxWave >= c.req) {
+                el.classList.remove('locked');
+                cheats[c.id] ? el.classList.add('active') : el.classList.remove('active');
+            } else {
+                el.classList.add('locked');
+                el.classList.remove('active');
+            }
+        });
+    }
+
+    function toggleCheat(id) {
+        const cfg = cheatConfig.find(c => c.id === id);
+        if (player.maxWave < cfg.req) return;
+        
+        cheats[id] = !cheats[id];
+        player.usedCheats = true;
+        document.getElementById('cheat-indicator').style.display = 'block';
+        updateCheatUI();
     }
 
     function useAbility(type) {
         if (type === 'emp' && player.empCd <= 0) {
+            addShake(20);
             enemyBullets = [];
-            enemies.forEach(e => { e.hp -= 50; createExplosion(e.x, e.y, '#fff', 5); });
-            player.empCd = 600; // 10 сек
-            createExplosion(player.x, player.y, varColor('--primary'), 30);
+            enemies.forEach(e => { e.hp -= 200; createExplosion(e.x, e.y, '#00ffff', 10); });
+            player.empCd = 900; 
+            for(let i=0; i<50; i++) particles.push({ x: player.x, y: player.y, c: '#00ffff', vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20, l: 1, s: Math.random()*5+2 });
         }
         if (type === 'hyper' && player.hyperCd <= 0) {
-            player.hyperT = 300; // 5 сек
-            player.hyperCd = 900; // 15 сек
+            player.hyperT = 300; 
+            player.hyperCd = 1200; 
+            addShake(10);
         }
     }
 
+    // --- FX & ENTITIES ---
     function createExplosion(x, y, c, n) {
-        for(let i=0; i<n; i++) particles.push({ x, y, c, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, l: 1 });
+        for(let i=0; i<n; i++) particles.push({ 
+            x, y, c, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, 
+            l: 1, s: Math.random()*6+2, rot: Math.random()*Math.PI 
+        });
+    }
+
+    function spawnDrop(x, y, val) {
+        drops.push({ x, y, vx: (Math.random()-0.5)*4, vy: -5 - Math.random()*3, val, t: 0 });
     }
 
     function spawnBoss() {
-        const type = Math.floor(player.wave / 10);
+        const bossPool = [
+            { id: 0, name: "SLIME CORE", col: '#55ff55', size: 100, hpBase: 2000 },
+            { id: 1, name: "OBSIDIAN BEHEMOTH", col: '#220033', size: 120, hpBase: 4000 },
+            { id: 2, name: "NETHER EYE", col: '#ff3300', size: 80, hpBase: 3000 }
+        ];
+        
+        const typeIndex = Math.floor((player.wave - 1) / 10) % 3;
+        const bData = bossPool[typeIndex];
+        const mult = 1 + (player.wave * 0.1);
+        
         boss = {
-            x: w/2, y: -100, tx: w/2, ty: 120,
-            hp: 500 * type, mHp: 500 * type,
-            size: 80, type: type,
-            attackTimer: 0,
-            col: type % 2 === 0 ? varColor('--accent') : varColor('--danger')
+            x: w/2, y: -150, tx: w/2, ty: 150,
+            hp: bData.hpBase * mult, mHp: bData.hpBase * mult,
+            size: bData.size, type: bData.id, col: bData.col,
+            phase: 0, timer: 0
         };
-        document.getElementById('boss-warning').style.display = 'block';
-        setTimeout(() => document.getElementById('boss-warning').style.display = 'none', 3000);
+        
+        addShake(30);
+        const warn = document.getElementById('boss-warning');
+        warn.innerText = bData.name;
+        warn.style.display = 'block';
+        setTimeout(() => warn.style.display = 'none', 4000);
     }
 
-    function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-
+    // --- MAIN GAME LOOP ---
     function update() {
         if (!gameActive) return;
         frame++;
-        if (cheats.money) player.credits += 5;
+        if (screenShake > 0) screenShake *= 0.9;
+        if (screenShake < 0.5) screenShake = 0;
 
-        // Player Movement
-        player.x += (player.tx - player.x) * 0.15;
-        player.y += (player.ty - player.y) * 0.15;
+        // Cheat Active Logistics
+        if (cheats.money) { player.credits += 10; drops = []; } 
+        if (cheats.emp_spam) player.empCd = 0;
+        if (cheats.warp_spam) player.hyperCd = 0;
+        if (cheats.auto_nuke && frame % 300 === 0 && !boss) {
+            enemies.forEach(e => { createExplosion(e.x, e.y, e.col, 10); spawnDrop(e.x, e.y, 5); });
+            enemies = []; addShake(10);
+        }
 
-        // Abilities logic
+        // Smooth Physics Player Movement
+        let moveSpeed = cheats.hyper_speed ? 0.6 : 0.15;
+        player.vx = (player.tx - player.x) * moveSpeed;
+        player.vy = (player.ty - player.y) * moveSpeed;
+        player.x += player.vx; player.y += player.vy;
+        
+        // Thruster particles
+        if(frame%2===0) {
+            particles.push({ x: player.x - 12 + (Math.random()-0.5)*4, y: player.y + 16, c: '#00aaff', vx: 0, vy: 5, l: 1, s: 4, rot:0 });
+            particles.push({ x: player.x + 4 + (Math.random()-0.5)*4, y: player.y + 16, c: '#00aaff', vx: 0, vy: 5, l: 1, s: 4, rot:0 });
+        }
+
+        // Cooldowns
         if (player.empCd > 0) player.empCd--;
         if (player.hyperCd > 0) player.hyperCd--;
         if (player.hyperT > 0) player.hyperT--;
 
-        document.getElementById('cd-emp').innerText = player.empCd > 0 ? Math.ceil(player.empCd/60) + 's' : 'READY';
-        document.getElementById('cd-hyper').innerText = player.hyperCd > 0 ? Math.ceil(player.hyperCd/60) + 's' : 'READY';
+        document.getElementById('cd-emp').innerText = player.empCd > 0 ? Math.ceil(player.empCd/60) + 's' : 'RDY';
+        document.getElementById('cd-hyper').innerText = player.hyperCd > 0 ? Math.ceil(player.hyperCd/60) + 's' : 'RDY';
         document.getElementById('btn-emp').classList.toggle('disabled', player.empCd > 0);
         document.getElementById('btn-hyper').classList.toggle('disabled', player.hyperCd > 0);
 
-        // Stars & Waves
-        stars.forEach(s => { s.y += s.v; if(s.y > h) s.y = -10; });
-        if (frame % 1000 === 0) {
+        // Stars
+        stars.forEach(s => { s.y += s.v + (player.hyperT>0?10:0); if(s.y > h) { s.y = -10; s.x = Math.random()*w; }});
+
+        // Wave Progression
+        if (frame % 1200 === 0 && !boss) {
             player.wave++;
+            if (player.wave > player.maxWave) {
+                player.maxWave = player.wave;
+                localStorage.setItem('cs_max_wave', player.maxWave);
+                updateCheatUI();
+            }
             if (player.wave % 10 === 0) spawnBoss();
         }
 
-        // Enemies
-        if (!boss && Math.random() < 0.02 + (player.wave * 0.002)) {
-            enemies.push({ x: Math.random()*w, y: -20, hp: 10 + player.wave*2, size: 20, col: varColor('--danger'), v: 2 + Math.random()*2 });
+        // Spawn Enemies
+        if (!boss && Math.random() < 0.02 + (player.wave * 0.003)) {
+            const isTank = Math.random() < 0.2;
+            enemies.push({ 
+                x: Math.random()*w, y: -40, 
+                hp: (isTank ? 50 : 20) * (1 + player.wave*0.1), 
+                size: isTank ? 40 : 25, 
+                col: isTank ? '#aa00ff' : '#ff0033', 
+                vy: isTank ? 1.5 : (3 + Math.random()*3),
+                vx: Math.sin(frame*0.05) * (isTank ? 0 : 2)
+            });
         }
 
+        let timeMod = cheats.time_slow ? 0.3 : 1;
+
+        // Update Enemies
         enemies.forEach((e, i) => {
-            e.y += e.v;
-            if (e.y > h) enemies.splice(i, 1);
-            if (Math.hypot(e.x - player.x, e.y - player.y) < 30) {
-                if (!cheats.god && player.hyperT <= 0) {
-                    if (player.sh > 0) player.sh -= 10; else player.hp -= 10;
-                }
-                createExplosion(e.x, e.y, e.col, 10);
+            e.y += e.vy * timeMod; e.x += e.vx * timeMod;
+            
+            if(frame % 60 === 0 && Math.random() < 0.1) {
+                enemyBullets.push({ x: e.x, y: e.y+e.size/2, vx: 0, vy: 5, s: 8, c: '#ff0000' });
+            }
+            if (e.y > h + 50) enemies.splice(i, 1);
+            
+            // Collision
+            let hitSize = cheats.tiny_hitbox ? 1 : player.size/2;
+            if (!cheats.noclip && Math.hypot(e.x - player.x, e.y - player.y) < (e.size/2 + hitSize)) {
+                takeDamage(30);
+                createExplosion(e.x, e.y, e.col, 15);
                 enemies.splice(i, 1);
             }
         });
 
-        // Boss Logic
+        // BOSS LOGIC
         if (boss) {
-            boss.y += (boss.ty - boss.y) * 0.02;
-            boss.x += Math.sin(frame * 0.02) * 2;
-            boss.attackTimer++;
-
-            // Boss Attacks
-            if (boss.attackTimer > 60) {
-                boss.attackTimer = 0;
-                if (boss.type === 1) { // Spread
-                    for(let i=-2; i<=2; i++) enemyBullets.push({ x: boss.x, y: boss.y, vx: i, vy: 5 });
-                } else if (boss.type === 2) { // Aimed
-                    let angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    enemyBullets.push({ x: boss.x, y: boss.y, vx: Math.cos(angle)*6, vy: Math.sin(angle)*6 });
-                } else { // Circle
-                    for(let i=0; i<8; i++) {
-                        let a = (Math.PI*2/8)*i + (frame*0.05);
-                        enemyBullets.push({ x: boss.x, y: boss.y, vx: Math.cos(a)*4, vy: Math.sin(a)*4 });
+            boss.timer++;
+            if (boss.y < boss.ty) boss.y += 1 * timeMod;
+            
+            if (boss.y >= boss.ty) {
+                boss.x = (w/2) + Math.sin(boss.timer * 0.02 * timeMod) * (w*0.3);
+                
+                if (boss.type === 0) { 
+                    if(boss.timer % 100 === 0) {
+                        for(let i=0; i<12; i++) {
+                            let a = (Math.PI*2/12)*i + (boss.timer*0.1);
+                            enemyBullets.push({ x: boss.x, y: boss.y, vx: Math.cos(a)*4, vy: Math.sin(a)*4, s:12, c:boss.col });
+                        }
+                    }
+                    if(boss.timer % 300 === 0) {
+                        enemies.push({ x: boss.x, y: boss.y, hp: 50, size: 30, col: boss.col, vy: 3, vx: (Math.random()-0.5)*4 });
+                    }
+                } 
+                else if (boss.type === 1) { 
+                    if(boss.timer % 60 === 0) {
+                        let tx = player.x - boss.x; let ty = player.y - boss.y; let len = Math.hypot(tx, ty);
+                        enemyBullets.push({ x: boss.x, y: boss.y, vx: (tx/len)*8, vy: (ty/len)*8, s: 16, c: '#aa00ff' });
+                    }
+                    if(boss.timer % 200 === 0) {
+                        for(let x=0; x<w; x+=60) enemyBullets.push({ x: x, y: boss.y, vx: 0, vy: 6, s: 10, c: '#ff00ff' });
+                    }
+                }
+                else if (boss.type === 2) {
+                    if(boss.timer % 15 === 0) {
+                        let a = Math.atan2(player.y - boss.y, player.x - boss.x) + (Math.random()-0.5)*0.5;
+                        enemyBullets.push({ x: boss.x, y: boss.y, vx: Math.cos(a)*10, vy: Math.sin(a)*10, s: 14, c: '#ff5500' });
                     }
                 }
             }
 
             if (boss.hp <= 0) {
-                createExplosion(boss.x, boss.y, boss.col, 50);
-                player.score += 5000; player.credits += 500;
+                createExplosion(boss.x, boss.y, boss.col, 100); addShake(40);
+                player.score += 10000;
+                for(let i=0; i<30; i++) spawnDrop(boss.x, boss.y, 50);
                 boss = null;
             }
         }
 
-        // Shooting
-        let fr = player.hyperT > 0 ? 3 : Math.max(4, 15 - player.fr);
-        if (cheats.rapid) fr = 2;
+        // Shooting (Player)
+        let frBase = Math.max(2, 12 - Math.floor(player.stats.fr / 10));
+        let fr = player.hyperT > 0 ? 2 : frBase;
+        if (cheats.rapid) fr = 1;
+
         if (frame % fr === 0) {
-            let dmg = (player.weapon * 5) * (cheats.insta ? 100 : 1);
-            bullets.push({ x: player.x, y: player.y - 20, vy: -12, dmg: dmg });
-            if (player.weapon >= 3) {
-                bullets.push({ x: player.x - 10, y: player.y - 10, vy: -11, vx: -1, dmg: dmg });
-                bullets.push({ x: player.x + 10, y: player.y - 10, vy: -11, vx: 1, dmg: dmg });
+            let dmg = (10 + player.stats.weapon * 2) * (cheats.insta ? 99999 : 1);
+            let bSpeed = player.hyperT > 0 ? -25 : -18;
+            let pSize = cheats.giant_blast ? 20 : 4;
+            let pHght = cheats.giant_blast ? 20 : 16;
+            
+            bullets.push({ x: player.x, y: player.y - 20, vy: bSpeed, vx: 0, dmg: dmg, c: '#00ffff', w: pSize, h: pHght });
+            
+            if (player.stats.weapon >= 25) {
+                bullets.push({ x: player.x-15, y: player.y-10, vy: bSpeed*0.9, vx: -2, dmg: dmg*0.5, c: '#0088ff', w: pSize, h: pHght });
+                bullets.push({ x: player.x+15, y: player.y-10, vy: bSpeed*0.9, vx: 2, dmg: dmg*0.5, c: '#0088ff', w: pSize, h: pHght });
+            }
+            if (player.stats.weapon >= 75) {
+                bullets.push({ x: player.x-25, y: player.y, vy: bSpeed*0.8, vx: -4, dmg: dmg*0.3, c: '#0044ff', w: pSize, h: pHght });
+                bullets.push({ x: player.x+25, y: player.y, vy: bSpeed*0.8, vx: 4, dmg: dmg*0.3, c: '#0044ff', w: pSize, h: pHght });
             }
         }
 
+        // Drone Logic
+        if (player.stats.drone > 0) {
+            let droneCount = cheats.drone_army ? 5 : 1;
+            for(let d=0; d<droneCount; d++) {
+                if(frame % (Math.max(5, 30 - Math.floor(player.stats.drone/4))) === 0) {
+                    let target = boss || enemies[0];
+                    if (target) {
+                        let aOffset = (Math.PI*2/droneCount)*d;
+                        let dx = target.x - (player.x + 40*Math.cos(frame*0.05 + aOffset)); 
+                        let dy = target.y - (player.y + 40*Math.sin(frame*0.05 + aOffset));
+                        let len = Math.hypot(dx, dy);
+                        let pSize = cheats.giant_blast ? 15 : 4;
+                        bullets.push({ 
+                            x: player.x + 40 * Math.cos(frame*0.05 + aOffset), 
+                            y: player.y + 40 * Math.sin(frame*0.05 + aOffset), 
+                            vy: (dy/len)*15, vx: (dx/len)*15, 
+                            dmg: (5 + player.stats.drone) * (cheats.insta?9999:1), c: '#55ff55', w: pSize, h: pSize 
+                        });
+                    }
+                }
+            }
+        }
+
+        // Bullets Physics
         bullets.forEach((b, i) => {
-            b.y += b.vy; b.x += (b.vx || 0);
-            if (b.y < -20) bullets.splice(i, 1);
+            b.y += b.vy; b.x += b.vx;
+            if (b.y < -50 || b.x < -50 || b.x > w+50) bullets.splice(i, 1);
             
-            if (boss && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.size/2) {
-                boss.hp -= b.dmg; bullets.splice(i, 1);
+            if (boss && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.size/2 + b.w/2) {
+                boss.hp -= b.dmg; createExplosion(b.x, b.y, b.c, 3); 
+                if(!cheats.giant_blast) bullets.splice(i, 1);
             }
 
             enemies.forEach((e, ei) => {
-                if (Math.hypot(b.x - e.x, b.y - e.y) < e.size) {
-                    e.hp -= b.dmg; bullets.splice(i, 1);
+                if (Math.hypot(b.x - e.x, b.y - e.y) < e.size/2 + b.w/2 + 5) {
+                    e.hp -= b.dmg; createExplosion(b.x, b.y, b.c, 3); 
+                    if(!cheats.giant_blast) bullets.splice(i, 1);
                     if (e.hp <= 0) {
-                        createExplosion(e.x, e.y, e.col, 10);
-                        enemies.splice(ei, 1);
-                        player.score += 100; player.credits += 5;
+                        createExplosion(e.x, e.y, e.col, 15); spawnDrop(e.x, e.y, 1 + Math.floor(player.wave/5));
+                        enemies.splice(ei, 1); player.score += 150 * player.wave;
                     }
                 }
             });
         });
 
         enemyBullets.forEach((eb, i) => {
-            eb.x += eb.vx; eb.y += eb.vy;
-            if (eb.y > h || eb.y < -50 || eb.x < -50 || eb.x > w+50) enemyBullets.splice(i, 1);
-            if (Math.hypot(eb.x - player.x, eb.y - player.y) < 15) {
-                if (!cheats.god && player.hyperT <= 0) {
-                    if (player.sh > 0) player.sh -= 15; else player.hp -= 15;
-                }
+            eb.x += eb.vx * timeMod; eb.y += eb.vy * timeMod;
+            if (eb.y > h+50 || eb.y < -50 || eb.x < -50 || eb.x > w+50) enemyBullets.splice(i, 1);
+            
+            let hitSize = cheats.tiny_hitbox ? 1 : player.size/2;
+            if (Math.hypot(eb.x - player.x, eb.y - player.y) < hitSize + eb.s/2) {
+                takeDamage(20); createExplosion(eb.x, eb.y, eb.c, 8);
                 enemyBullets.splice(i, 1);
             }
         });
 
-        // HUD & Death
-        document.getElementById('hp-fill').style.width = (player.hp / player.mHp * 100) + '%';
-        document.getElementById('sh-fill').style.width = (player.sh / player.mSh * 100) + '%';
+        // Drops Physics
+        let magRange = cheats.magnet_max ? 9999 : 100 + (player.stats.magnet * 3);
+        drops.forEach((d, i) => {
+            d.vy += 0.2; d.y += d.vy; d.x += d.vx; d.t += 0.1;
+            
+            let dist = Math.hypot(player.x - d.x, player.y - d.y);
+            if (dist < magRange) {
+                d.vx += (player.x - d.x) * (cheats.magnet_max ? 0.3 : 0.05);
+                d.vy += (player.y - d.y) * (cheats.magnet_max ? 0.3 : 0.05);
+            }
+
+            if (dist < player.size) {
+                player.credits += d.val; player.score += 50; drops.splice(i, 1);
+            } else if (d.y > h + 50) {
+                drops.splice(i, 1);
+            }
+        });
+
+        if (player.sh < player.mSh && frame % 30 === 0) player.sh += (1 + Math.floor(player.stats.shLvl/10));
+
+        // UI
+        document.getElementById('hp-fill').style.width = Math.max(0, (player.hp / player.mHp * 100)) + '%';
+        document.getElementById('sh-fill').style.width = Math.max(0, (player.sh / player.mSh * 100)) + '%';
         document.getElementById('score-val').innerText = player.score;
         document.getElementById('wave-val').innerText = player.wave;
         document.getElementById('cred-val').innerText = player.credits;
 
         if (player.hp <= 0) gameOver();
-        if (player.sh < player.mSh && frame % 60 === 0) player.sh++;
 
         particles.forEach((p, i) => {
-            p.x += p.vx; p.y += p.vy; p.l -= 0.02;
+            p.x += p.vx; p.y += p.vy; p.l -= 0.03; p.rot += 0.1;
             if(p.l <= 0) particles.splice(i, 1);
         });
     }
 
+    function takeDamage(amt) {
+        if (cheats.god || player.hyperT > 0) return;
+        addShake(15);
+        if (player.sh > 0) {
+            player.sh -= amt;
+            if (player.sh < 0) { player.hp += player.sh; player.sh = 0; }
+        } else {
+            player.hp -= amt;
+        }
+    }
+
     function gameOver() {
         gameActive = false;
+        localStorage.setItem('cs_credits', player.credits);
         if (!player.usedCheats) {
             let best = parseInt(localStorage.getItem('cs_best_score') || 0);
             if (player.score > best) localStorage.setItem('cs_best_score', player.score);
+            document.getElementById('best-score-display').innerText = Math.max(best, player.score);
         }
         document.getElementById('start-screen').style.display = 'flex';
+        document.querySelector('.lang-switch').style.display = 'none';
     }
 
+    // --- RENDERING ---
     function draw() {
-        ctx.fillStyle = '#050505'; ctx.fillRect(0,0,w,h);
-        ctx.fillStyle = '#444'; stars.forEach(s => ctx.fillRect(s.x, s.y, 2, 2));
+        ctx.fillStyle = '#111'; ctx.fillRect(0,0,w,h);
+        ctx.save();
+        if (screenShake > 0) ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
 
-        // Player
-        const sx = player.x - (shipPixels[0].length * pSize)/2;
-        const sy = player.y - (shipPixels.length * pSize)/2;
-        shipPixels.forEach((row, r) => row.forEach((p, c) => {
-            if (p) {
-                if (p === 4) ctx.fillStyle = frame % 10 < 5 ? '#f80' : '#f00';
-                else ctx.fillStyle = player.hyperT > 0 ? '#0ff' : ['','#ccc','#0ff','#555'][p];
-                ctx.fillRect(sx + c*pSize, sy + r*pSize, pSize, pSize);
+        ctx.fillStyle = '#555'; stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
+
+        // NEW: DETAILED VOXEL SHIP
+        if (player.hyperT > 0) ctx.globalAlpha = 0.5 + Math.sin(frame*0.5)*0.5;
+        
+        // Body
+        drawVoxel(player.x - 8, player.y - 12, 16, '#dddddd', '#ffffff', '#aaaaaa');
+        // Cockpit
+        drawVoxel(player.x - 4, player.y - 6, 8, '#00ffff', '#ccffff', '#0088cc');
+        // Wings
+        drawVoxel(player.x - 20, player.y + 4, 12, '#333333', '#666666', '#111111');
+        drawVoxel(player.x + 8, player.y + 4, 12, '#333333', '#666666', '#111111');
+        // Wingtips (Energy Weapons)
+        drawVoxel(player.x - 24, player.y - 4, 8, '#aa00ff', '#dd88ff', '#5500aa');
+        drawVoxel(player.x + 16, player.y - 4, 8, '#aa00ff', '#dd88ff', '#5500aa');
+        // Engines
+        drawVoxel(player.x - 12, player.y + 16, 8, '#444444', '#888888', '#222222');
+        drawVoxel(player.x + 4, player.y + 16, 8, '#444444', '#888888', '#222222');
+        
+        if(cheats.tiny_hitbox) {
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(player.x-1, player.y-1, 2, 2); // Show pixel hitbox
+        }
+        ctx.globalAlpha = 1;
+
+        // Drones
+        if (player.stats.drone > 0) {
+            let droneCount = cheats.drone_army ? 5 : 1;
+            for(let d=0; d<droneCount; d++) {
+                let aOffset = (Math.PI*2/droneCount)*d;
+                let dx = player.x + 40 * Math.cos(frame*0.05 + aOffset);
+                let dy = player.y + 40 * Math.sin(frame*0.05 + aOffset);
+                drawVoxel(dx-6, dy-6, 12, '#55ff55', '#aaffaa', '#00aa00');
             }
-        }));
-        if (player.hyperT > 0) {
-            ctx.strokeStyle = '#0ff'; ctx.beginPath(); ctx.arc(player.x, player.y, 35, 0, Math.PI*2); ctx.stroke();
         }
 
-        // Boss
+        // Boss & Enemies & Drops
         if (boss) {
-            ctx.fillStyle = boss.col; ctx.fillRect(boss.x - boss.size/2, boss.y - boss.size/2, boss.size, boss.size);
-            ctx.strokeStyle = '#fff'; ctx.strokeRect(boss.x - boss.size/2, boss.y - boss.size/2, boss.size, boss.size);
-            // Health bar boss
-            ctx.fillStyle = '#444'; ctx.fillRect(boss.x - 40, boss.y - 60, 80, 6);
-            ctx.fillStyle = varColor('--danger'); ctx.fillRect(boss.x - 40, boss.y - 60, (boss.hp/boss.mHp)*80, 6);
+            drawVoxel(boss.x - boss.size/2, boss.y - boss.size/2, boss.size, boss.col, '#ffffff', '#000000');
+            ctx.fillStyle = '#000'; ctx.fillRect(boss.x - boss.size/2, boss.y - boss.size/2 - 20, boss.size, 8);
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(boss.x - boss.size/2, boss.y - boss.size/2 - 20, (boss.hp/boss.mHp)*boss.size, 8);
         }
-
-        enemies.forEach(e => {
-            ctx.fillStyle = e.col; ctx.fillRect(e.x-10, e.y-10, 20, 20);
-            ctx.strokeStyle = '#fff'; ctx.strokeRect(e.x-10, e.y-10, 20, 20);
+        enemies.forEach(e => drawVoxel(e.x - e.size/2, e.y - e.size/2, e.size, e.col, '#ffaaaa', '#550000'));
+        drops.forEach(d => {
+            ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.t);
+            drawVoxel(-6, -6, 12, '#55ff55', '#aaffaa', '#00aa00'); ctx.restore();
         });
 
-        ctx.fillStyle = '#0ff'; bullets.forEach(b => ctx.fillRect(b.x-2, b.y, 4, 12));
-        ctx.fillStyle = '#f0f'; enemyBullets.forEach(eb => ctx.fillRect(eb.x-3, eb.y-3, 6, 6));
+        // Bullets
+        bullets.forEach(b => { ctx.fillStyle = b.c; ctx.fillRect(b.x-b.w/2, b.y-b.h/2, b.w, b.h); });
+        enemyBullets.forEach(eb => {
+            ctx.fillStyle = '#fff'; ctx.fillRect(eb.x-eb.s/2, eb.y-eb.s/2, eb.s, eb.s);
+            ctx.fillStyle = eb.c; ctx.fillRect(eb.x-eb.s/2+2, eb.y-eb.s/2+2, eb.s-4, eb.s-4);
+        });
         
         particles.forEach(p => {
-            ctx.globalAlpha = p.l; ctx.fillStyle = p.c;
-            ctx.fillRect(p.x, p.y, 4, 4);
+            ctx.globalAlpha = p.l; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+            ctx.fillStyle = p.c; ctx.fillRect(-p.s/2, -p.s/2, p.s, p.s); ctx.restore();
         });
         ctx.globalAlpha = 1;
+
+        if (player.hyperT > 0) {
+            ctx.strokeStyle = '#0ff'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(player.x, player.y, 40 + Math.sin(frame*0.2)*10, 0, Math.PI*2); ctx.stroke();
+        }
+
+        ctx.restore();
     }
 
     function startGame() {
-        player.hp = player.mHp; player.sh = player.mSh;
-        player.score = 0; player.wave = 1; player.credits = 0;
-        player.usedCheats = false;
-        enemies = []; bullets = []; enemyBullets = []; boss = null;
+        player.mHp = 100 + (player.stats.hpLvl * 20); player.hp = player.mHp;
+        player.mSh = 100 + (player.stats.shLvl * 20); player.sh = player.mSh;
+        player.score = 0; player.wave = 1; player.usedCheats = false;
+        enemies = []; bullets = []; enemyBullets = []; drops = []; boss = null;
+        
         document.getElementById('cheat-indicator').style.display = 'none';
         document.getElementById('start-screen').style.display = 'none';
+        document.querySelector('.lang-switch').style.display = 'none';
+        
+        // Reset dynamic cheats
+        cheatConfig.forEach(c => cheats[c.id] = false);
+        updateCheatUI();
+        
         gameActive = true;
     }
 
+    // Controls
     canvas.addEventListener('touchstart', e => {
-        player.tx = e.touches[0].clientX; player.ty = e.touches[0].clientY - 60;
+        player.tx = e.touches[0].clientX; player.ty = e.touches[0].clientY - 80;
     });
     canvas.addEventListener('touchmove', e => {
         e.preventDefault();
-        player.tx = e.touches[0].clientX; player.ty = e.touches[0].clientY - 60;
+        player.tx = e.touches[0].clientX; player.ty = e.touches[0].clientY - 80;
     }, {passive:false});
+    
+    canvas.addEventListener('mousemove', e => {
+        if(gameActive) { player.tx = e.clientX; player.ty = e.clientY - 40; } // Offset for mouse
+    });
 
     window.addEventListener('resize', init);
     init();
